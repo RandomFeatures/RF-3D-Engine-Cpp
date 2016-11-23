@@ -1,0 +1,291 @@
+#ifndef LISTCONTROL_H
+#define LISTCONTROL_H
+#include <windows.h>
+
+template <class T>
+class List
+{
+	template <class U>
+	class Node
+	{
+		public:
+		U		Item;
+		Node*	NextNode;
+		Node*	PrevNode;
+
+		Node()	{ NextNode = NULL; PrevNode = NULL; }
+		~Node()	{ delete NextNode; }
+	};
+
+	Node <T> *	FirstItem;
+	Node <T> *	LastItem;
+	Node <T> *	LastItemUsed;
+	int size;
+	Node <T> *	findItem(long ItemIndex);
+	T			NULLT;
+
+public:
+	List()	{ size = 0; FirstItem = NULL; LastItem = NULL; memset(&NULLT, 0, sizeof(NULLT)); }
+	~List() { delete FirstItem; }
+
+	int		Add (long InsertAt = -1, bool InsertBefore = false);
+	int		Add (T ItemData, long InsertAt = -1, bool InsertBefore = false);
+	bool	Remove (long ItemIndex);
+	void	Clear ();
+	bool	Swap (long ItemOne, long ItemTwo);
+	T&		Item (long ItemIndex);
+	T&		NextItem ();
+	T&		PrevItem ();
+	long	Length ();
+	long	Find (T FindItem, long StartAt);
+
+	T& operator [] (long ItemIndex);
+};
+
+template <class T>
+List <T>::Node <T>* List <T>::findItem(long ItemIndex)
+{
+	Node <T> *NodeAddr = FirstItem;
+
+	if (ItemIndex < 0 || ItemIndex >= size)
+		return NULL;
+	else if (ItemIndex == (size - 1))
+		return LastItem;
+	else if (ItemIndex == 0)
+		return FirstItem;
+
+	for (int i = 0; i < ItemIndex; i++)
+	{
+		NodeAddr = NodeAddr->NextNode;
+	}
+
+	return NodeAddr;
+}
+
+template <class T>
+int List <T>::Add (long InsertAt, bool InsertBefore)
+{
+	return Add (NULLT, InsertAt, InsertBefore);
+}
+
+template <class T>
+int List <T>::Add (T ItemData, long InsertAt, bool InsertBefore)
+{
+	int ret = -1;
+	Node <T> * temp = new Node <T>;
+	temp->Item = ItemData;
+
+	if (InsertAt >= size) return ret;
+
+	if (InsertAt >= 0 && size > 0)
+	{
+		if (InsertBefore)
+		{
+			if (InsertAt == 0)
+			{
+				temp->NextNode = FirstItem;
+				FirstItem->PrevNode = temp;
+
+				FirstItem = temp;
+				ret = 0;
+			}
+			else
+			{
+				Node <T> * prevItem = findItem(InsertAt - 1);
+
+				temp->NextNode = prevItem->NextNode;
+				temp->PrevNode = prevItem;
+
+				prevItem->NextNode = temp;
+				prevItem->NextNode->PrevNode = temp;
+
+				ret = InsertAt;
+			}
+		}
+		else
+		{
+			Node <T> *prevItem = findItem(InsertAt);
+
+			temp->NextNode = prevItem->NextNode;
+			temp->PrevNode = prevItem;
+
+			prevItem->NextNode = temp;
+			if (prevItem->NextNode)
+				prevItem->NextNode->PrevNode = temp;
+
+			if (prevItem == LastItem)
+				LastItem = temp;
+
+			ret = InsertAt + 1;
+		}
+	}
+	else if (size == 0)
+	{
+		FirstItem = temp;
+		LastItem = temp;
+		ret = 0;
+	}
+	else
+	{
+		LastItem->NextNode = temp;
+		temp->PrevNode = LastItem;
+
+		LastItem = temp;
+		ret = size;
+	}
+
+    size++;
+	return ret;
+}
+
+
+template <class T>
+bool List <T>::Remove (long ItemIndex)
+{
+	Node <T> *temp, *prev;
+
+	if (ItemIndex < 0 || ItemIndex >= size) return false;
+
+	if (size == 1)
+	{
+		if (ItemIndex != 0) return false;
+		FirstItem = LastItem = LastItemUsed = NULL;
+	}
+	else
+	{
+		temp = findItem (ItemIndex);
+
+		if (temp == LastItemUsed)
+			LastItemUsed = temp->NextNode;
+
+		if (temp == FirstItem)
+		{
+			FirstItem = FirstItem->NextNode;
+			if (FirstItem->NextNode)
+				FirstItem->NextNode->PrevNode = FirstItem;
+			else
+				LastItem = FirstItem;
+
+			temp->NextNode = NULL;
+			delete temp;
+		}
+		else
+		{
+			prev = findItem (ItemIndex - 1);
+
+			prev->NextNode = temp->NextNode;
+			if (prev->NextNode)
+				prev->NextNode->PrevNode = prev;
+			else
+				LastItem = prev;
+
+			temp->NextNode = NULL;
+			delete temp;
+		}
+	}
+
+	size--;
+	return true;
+}
+
+template <class T>
+void List <T>::Clear ()
+{
+	delete FirstItem;
+	FirstItem = LastItem = LastItemUsed = NULL;
+	size = 0;
+}
+
+
+template <class T>
+bool List <T>::Swap (long ItemOne, long ItemTwo)
+{
+	Node <T> *item1, *item2;
+	T tempItem;
+
+	if (ItemOne < 0 || ItemOne >= size ||
+		ItemTwo < 0 || ItemTwo >= size) return false;
+
+	item1 = findItem(ItemOne);
+	item2 = findItem(ItemTwo);
+
+	tempItem = item1->Item;
+	item1->Item = item2->Item;
+	item2->Item = tempItem;
+
+	return true;
+}
+
+template <class T>
+T& List <T>::Item (long ItemIndex)
+{
+	if (ItemIndex < 0 || ItemIndex >= size) return NULLT;
+
+	LastItemUsed = findItem(ItemIndex);
+	return LastItemUsed->Item;
+}
+
+template <class T>
+T& List<T>::NextItem()
+{
+	if (!LastItemUsed)
+		LastItemUsed = FirstItem;
+	else
+		LastItemUsed = LastItemUsed->NextNode;
+
+	if (!LastItemUsed)
+		return NULLT;
+	else
+		return LastItemUsed->Item;
+}
+
+template <class T>
+T& List<T>::PrevItem()
+{
+	if (!LastItemUsed)
+		LastItemUsed = LastItem;
+	else
+		LastItemUsed = LastItemUsed->PrevNode;
+
+	if (!LastItemUsed)
+		return NULLT;
+	else
+		return LastItemUsed->Item;
+}
+
+template <class T>
+long List <T>::Length ()
+{
+	return size;
+}
+
+template <class T>
+long List <T>::Find (T FindItem, long StartAt)
+{
+	if (StartAt < 0 || StartAt >= size) return -1;
+	long foundIndex = -1;
+
+	Node <T> *NodeAddr = findItem(StartAt);
+	for (int i = StartAt; i < size; i++)
+	{
+		if (NodeAddr->Item == FindItem)
+		{
+			foundIndex = i;
+			break;
+		}
+		NodeAddr = NodeAddr->NextNode;
+	}
+
+	return foundIndex;
+}
+
+template <class T>
+T& List <T>::operator [] (long ItemIndex)
+{
+	if (ItemIndex < 0 || ItemIndex >= size) return NULLT;
+
+	LastItemUsed = findItem(ItemIndex);
+	return LastItemUsed->Item;
+}
+
+#endif
